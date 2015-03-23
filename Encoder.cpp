@@ -48,7 +48,7 @@ bool Encoder::initialize(int width, int height, int fps, int quality)
     {
         owarn("Encoder::initialize: IFR session init failed.");
     }
-
+    omsg("Encoder initialized");
 
     return true;
 }
@@ -64,7 +64,9 @@ void Encoder::shutdown()
 ///////////////////////////////////////////////////////////////////////////////
 bool Encoder::encodeFrame(RenderTarget* source)
 {
-    while(myTransferCounter - myReceivedTransfers < myMaxOutstandingTransfers)
+    oassert(source != NULL);
+
+    while(myTransferCounter - myReceivedTransfers > myMaxOutstandingTransfers)
     {
         myDataReleasedEvent.wait();
     }
@@ -72,12 +74,13 @@ bool Encoder::encodeFrame(RenderTarget* source)
     if(myNVIFR.nvIFROGLTransferFramebufferToH264Enc(
         myTransferObject,
         NULL,
-        source->getId(),
-        GL_COLOR_ATTACHMENT0,
+        0,//source->getId(),
+        GL_FRONT_LEFT,//GL_COLOR_ATTACHMENT0,
         GL_NONE
         ) != NV_IFROGL_SUCCESS)
     {
         owarn("Encoder::encodeFrame: failed to transfer data to encoder");
+
         return false;
     }
 
