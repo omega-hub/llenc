@@ -45,13 +45,13 @@ void CameraStreamer::beginDraw(Camera* cam, DrawContext& context)
 {
     if(myRenderTarget == NULL) initialize(cam, context);
 
-    //myRenderTarget->bind();
+    myRenderTarget->bind();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void CameraStreamer::endDraw(Camera* cam, DrawContext& context)
 {
-    //myRenderTarget->unbind();
+    myRenderTarget->unbind();
 }
 
 ///////////////////////////////////////////////////////////////////////////////

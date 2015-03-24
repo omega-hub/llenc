@@ -74,8 +74,8 @@ bool Encoder::encodeFrame(RenderTarget* source)
     if(myNVIFR.nvIFROGLTransferFramebufferToH264Enc(
         myTransferObject,
         NULL,
-        0,//source->getId(),
-        GL_FRONT_LEFT,//GL_COLOR_ATTACHMENT0,
+        source->getId(),
+        GL_COLOR_ATTACHMENT0,
         GL_NONE
         ) != NV_IFROGL_SUCCESS)
     {
