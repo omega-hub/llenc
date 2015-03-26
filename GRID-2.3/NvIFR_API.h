@@ -16,7 +16,7 @@
 #define NVIFR_API_H
 
 #include <string.h>
-#include "NvIFR/NvIFROpenGL.h"
+#include "NvIFROpenGL.h"
 
 /*!
  * This class can be used to access the NvIFR API. To use this define a

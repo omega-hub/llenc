@@ -6,9 +6,9 @@ add_library(llenc
     
 if(OMEGA_OS_WIN)
     if(OMEGA_ARCH_32)
-        target_link_libraries(llenc ${CMAKE_CURRENT_LIST_DIR}/NvIFR/x86/NvIFROpenGL.lib)
+        target_link_libraries(llenc ${CMAKE_CURRENT_LIST_DIR}/GRID-2.3/x86/NvIFROpenGL.lib)
     else()
-        target_link_libraries(llenc ${CMAKE_CURRENT_LIST_DIR}/NvIFR/amd64/NvIFROpenGL.lib)
+        target_link_libraries(llenc ${CMAKE_CURRENT_LIST_DIR}/GRID-2.3/amd64/NvIFROpenGL.lib)
     endif()
 elseif(OMEGA_OS_LINUX)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnvidia-ifr")

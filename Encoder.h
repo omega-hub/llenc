@@ -3,7 +3,7 @@
 
 #include <omega.h>
 
-#ifdef OMEGA_OS_WINDOWS
+#ifdef OMEGA_OS_WIN
     #include "GRID-2.3/NvIFR_API.h"
 #elif defined OMEGA_OS_LINUX
     #include "GRID-2.2/NvIFR_API.h"
