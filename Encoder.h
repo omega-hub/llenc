@@ -22,7 +22,7 @@ namespace llenc
     public:
         Encoder();
 
-        bool initialize(int width, int height, int fps = 60, int quality = 100);
+        bool initialize(int width, int height, int fps = 30, int quality = 100);
         void shutdown();
 
         bool encodeFrame(RenderTarget* rt);

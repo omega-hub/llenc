@@ -2,6 +2,8 @@
 *	An example of encoding using the low-latency encoder module. NVIDIA GRID SDK
 *   support is needed to run this example.
 ******************************************************************************/
+
+
 #include <omega.h>
 #include <omegaGl.h>
 
@@ -127,6 +129,7 @@ public:
     Ref<CameraStreamer> myStreamer;
     FileOutputThread* myFileOutputThread;
 };
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // ApplicationBase entry point

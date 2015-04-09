@@ -7,8 +7,11 @@ using namespace llenc;
 
 ///////////////////////////////////////////////////////////////////////////////
 CameraStreamer::CameraStreamer():
-    myEncoder(NULL)
+    myEncoder(NULL),
+    myTargetFps(20)
 {
+    myTimer.start();
+    myLastFrameTime = 0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -27,17 +30,19 @@ void CameraStreamer::initialize(Camera* c, const DrawContext& context)
 {
     Renderer* r = context.renderer;
 
-    Vector2i& size = context.tile->pixelSize;
+    Vector2i size = context.tile->pixelSize;
+    //ofmsg("tile pixel size: %1%", %size);
 
     myRenderTarget = r->createRenderTarget(RenderTarget::RenderToTexture);
     myRenderTexture = r->createTexture();
-    myRenderTexture->initialize(size[0], size[1]);
+    myRenderTexture->initialize(size[0], size[1], Texture::TypeRectangle);
     myDepthTexture = r->createTexture();
-    myDepthTexture->initialize(size[0], size[1], GL_DEPTH_COMPONENT);
+    myDepthTexture->initialize(size[0], size[1], Texture::TypeRectangle, Texture::ChannelDepth, Texture::FormatFloat);
     myRenderTarget->setTextureTarget(myRenderTexture, myDepthTexture);
 
-    myEncoder = new Encoder();
-    myEncoder->initialize(size[0], size[1]);
+    Encoder* e = new Encoder();
+    e->initialize(size[0], size[1]);
+    myEncoder = e;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -57,10 +62,17 @@ void CameraStreamer::endDraw(Camera* cam, DrawContext& context)
 ///////////////////////////////////////////////////////////////////////////////
 void CameraStreamer::startFrame(Camera* cam, const FrameInfo& frame)
 {
+    if(myRenderTarget != NULL) myRenderTarget->clear();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 void CameraStreamer::finishFrame(Camera* cam, const FrameInfo& frame)
 {
-    myEncoder->encodeFrame(myRenderTarget);
+    // If enough time has passed since the last frime, send a new one
+    // to the encoder.
+    if(myTimer.getElapsedTimeInMilliSec() - myLastFrameTime > (1000.0f / myTargetFps))
+    {
+        myEncoder->encodeFrame(myRenderTarget);
+        myLastFrameTime = myTimer.getElapsedTimeInMilliSec();
+    }
 }

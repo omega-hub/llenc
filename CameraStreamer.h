@@ -25,12 +25,20 @@ namespace llenc
 
         Encoder* getEncoder() { return myEncoder; }
 
+        void setTargetFps(int fps) { myTargetFps = fps; }
+        int getTargetFps() { return myTargetFps; }
+
     private:
         Encoder* myEncoder;
 
         Ref<RenderTarget> myRenderTarget;
         Ref<Texture> myRenderTexture;
         Ref<Texture> myDepthTexture;
+
+        // FPS stuff
+        int myTargetFps;
+        Timer myTimer;
+        double myLastFrameTime;
     };
 };
 
