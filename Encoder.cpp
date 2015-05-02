@@ -27,18 +27,21 @@ bool Encoder::initialize(int width, int height, int fps, int quality)
     NV_IFROGL_H264_ENC_CONFIG config;
     memset(&config, 0, sizeof(config));
 
+    // 66 = Baseline profile - this is the only supported profile for the
+    // web-based decoder.
     config.profile = 66;
     config.frameRateNum = 20;
     config.frameRateDen = 1;
     config.width = width;
     config.height = height;
-    config.avgBitRate = width * height * 5.69 * 8;
+    config.avgBitRate = width * height * 5.69;
+    config.peakBitRate = width * height * 5.69 * 8;
     config.GOPLength = 75;
-    config.rateControl = NV_IFROGL_H264_RATE_CONTROL_CBR;
+    config.rateControl = NV_IFROGL_H264_RATE_CONTROL_VBR;
     config.stereoFormat = NV_IFROGL_H264_STEREO_NONE;
     config.preset = NV_IFROGL_H264_PRESET_LOW_LATENCY_HP;
-    config.VBVBufferSize = config.avgBitRate / fps;
-    config.VBVInitialDelay = config.avgBitRate / fps;
+    config.VBVBufferSize = config.avgBitRate / 20;
+    config.VBVInitialDelay = config.avgBitRate / 20;
 
     if(!myNVIFR.initialize())
     {

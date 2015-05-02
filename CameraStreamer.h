@@ -17,6 +17,7 @@ namespace llenc
         ~CameraStreamer();
 
         void initialize(Camera* c, const DrawContext& context);
+        void reset(Camera* c, const DrawContext& context);
 
         virtual void endDraw(Camera* cam, DrawContext& context);
         virtual void beginDraw(Camera* cam, DrawContext& context);

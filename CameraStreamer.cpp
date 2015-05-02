@@ -29,9 +29,9 @@ CameraStreamer::~CameraStreamer()
 void CameraStreamer::initialize(Camera* c, const DrawContext& context)
 {
     Renderer* r = context.renderer;
-
     Vector2i size = context.tile->pixelSize;
-    //ofmsg("tile pixel size: %1%", %size);
+    
+    oflog(Verbose, "[CameraStreamer::initialize] tile pixel size: <%1%>", %size);
 
     myRenderTarget = r->createRenderTarget(RenderTarget::RenderToTexture);
     myRenderTexture = r->createTexture();
@@ -46,9 +46,34 @@ void CameraStreamer::initialize(Camera* c, const DrawContext& context)
 }
 
 ///////////////////////////////////////////////////////////////////////////////
+void CameraStreamer::reset(Camera* c, const DrawContext& context)
+{
+    Renderer* r = context.renderer;
+    Vector2i size = context.tile->pixelSize;
+    
+    oflog(Verbose, "[CameraStreamer::reset] tile pixel size: <%1%>", %size);
+    myRenderTexture->resize(size[0], size[1]);
+    myDepthTexture->resize(size[0], size[1]);
+    
+    // Recreate the encoder.
+    myEncoder->shutdown();
+    delete myEncoder;
+    Encoder* e = new Encoder();
+    e->initialize(size[0], size[1]);
+    myEncoder = e;
+}
+
+///////////////////////////////////////////////////////////////////////////////
 void CameraStreamer::beginDraw(Camera* cam, DrawContext& context)
 {
     if(myRenderTarget == NULL) initialize(cam, context);
+    
+    // If the output tile size changed, reset the encoder.
+    if(context.tile->pixelSize[0] != myRenderTarget->getWidth() ||
+        context.tile->pixelSize[1] != myRenderTarget->getHeight())
+    {
+        reset(cam, context);
+    }
 
     myRenderTarget->bind();
 }
