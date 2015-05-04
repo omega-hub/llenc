@@ -1,11 +1,54 @@
+#include <omega.h>
+#include <omegaToolkit.h>
 #include <omegaGl.h>
 
-#include "Encoder.h"
+#ifdef OMEGA_OS_WIN
+    #include "GRID-2.3/NvIFR_API.h"
+    #define DLL_EXPORT extern "C" __declspec(dllexport)
+#elif defined OMEGA_OS_LINUX
+    #include "GRID-2.2/NvIFR_API.h"
+    #define DLL_EXPORT extern "C"
+#else
+    #error "llenc uses the NVIDIA GRID SDK, supported only on Windows and Linux."
+#endif
 
+using namespace omega;
+using namespace omegaToolkit;
 
-using namespace llenc;
+////////////////////////////////////////////////////////////////////////////////
+// NVIDIA GRID Encoder class.
+class Encoder: public IEncoder
+{
+public:
+    Encoder();
 
-///////////////////////////////////////////////////////////////////////////////
+    bool initialize(int width, int height, int fps = 30, int quality = 100);
+    void shutdown();
+
+    bool encodeFrame(RenderTarget* rt);
+    bool dataAvailable();
+    bool lockBitstream(const void** stptr, uint32_t* bytes);
+    void unlockBitstream();
+
+private:
+    NvIFRAPI myNVIFR;
+    NV_IFROGL_SESSION_HANDLE mySession;
+    NV_IFROGL_TRANSFEROBJECT_HANDLE myTransferObject;
+    
+    ThreadEvent myDataReleasedEvent;
+    ThreadEvent myTransferStartedEvent;
+
+    int myMaxOutstandingTransfers;
+    int myReceivedTransfers;
+    int myTransferCounter;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Library entry point.
+DLL_EXPORT IEncoder* createEncoder() 
+{ return new Encoder(); }
+    
+////////////////////////////////////////////////////////////////////////////////
 Encoder::Encoder()
 {
     myMaxOutstandingTransfers = 4;
@@ -14,14 +57,13 @@ Encoder::Encoder()
 
 }
 
-
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 void ifrcb(NV_IFROGL_DEBUG_SEVERITY s, const char* message, void* usr)
 {
     omsg(message);
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 bool Encoder::initialize(int width, int height, int fps, int quality)
 {
     NV_IFROGL_H264_ENC_CONFIG config;
@@ -67,7 +109,7 @@ bool Encoder::initialize(int width, int height, int fps, int quality)
     return true;
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 void Encoder::shutdown()
 {
     olog(Verbose, "llenc Encoder shutdown");
@@ -76,7 +118,7 @@ void Encoder::shutdown()
     myNVIFR.nvIFROGLDestroySession(mySession);
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 bool Encoder::encodeFrame(RenderTarget* source)
 {
     oassert(source != NULL);
@@ -106,14 +148,14 @@ bool Encoder::encodeFrame(RenderTarget* source)
     return true;
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 bool Encoder::dataAvailable()
 {
     //ofmsg("TransferPending %1%    Received %2%", %myTransferCounter %myReceivedTransfers);   
     return (myTransferCounter > myReceivedTransfers);
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 bool Encoder::lockBitstream(const void** stptr, uint32_t* bytes)
 {
     uintptr_t datasize;
@@ -128,7 +170,7 @@ bool Encoder::lockBitstream(const void** stptr, uint32_t* bytes)
     return true;
 }
 
-///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////
 void Encoder::unlockBitstream()
 {
     myNVIFR.nvIFROGLReleaseTransferData(myTransferObject);

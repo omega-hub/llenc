@@ -1,8 +1,4 @@
-add_library(llenc
-    Encoder.h
-    Encoder.cpp
-    CameraStreamer.h
-    CameraStreamer.cpp)
+add_library(llenc SHARED llenc.cpp)
     
 if(OMEGA_OS_WIN)
     if(OMEGA_ARCH_32)
@@ -17,6 +13,7 @@ else()
 endif()
     
 set_target_properties(llenc PROPERTIES FOLDER modules)
+target_link_libraries(llenc omegaToolkit)
 
 if(OMEGA_BUILD_EXAMPLES)
     add_executable(helloEncoder

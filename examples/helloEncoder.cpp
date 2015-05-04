@@ -6,14 +6,12 @@
 
 #include <omega.h>
 #include <omegaGl.h>
+#include <omegaToolkit.h>
 
 #include "cube.h"
 
-#include "llenc/CameraStreamer.h"
-#include "llenc/Encoder.h"
-
 using namespace omega;
-using namespace llenc;
+using namespace omegaToolkit;
 
 class HelloApplication;
 
@@ -29,7 +27,7 @@ public:
 
         while(!SystemManager::instance()->isExitRequested())
         {
-            Encoder* e = streamer->getEncoder();
+            IEncoder* e = streamer->getEncoder();
             if(e != NULL && e->dataAvailable())
             {
                 const void* data;
@@ -112,7 +110,7 @@ public:
 
     virtual void initialize()
     {
-        myStreamer = new CameraStreamer();
+        myStreamer = new CameraStreamer("llenc");
         getEngine()->getDefaultCamera()->addListener(myStreamer);
 
         myFileOutputThread = new FileOutputThread();
