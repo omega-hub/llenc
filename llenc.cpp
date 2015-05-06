@@ -15,6 +15,10 @@
 using namespace omega;
 using namespace omegaToolkit;
 
+// NVIFR API object
+bool sNVIFRInitialized = false;
+NvIFRAPI NVIFR;
+
 ////////////////////////////////////////////////////////////////////////////////
 // NVIDIA GRID Encoder class.
 class Encoder: public IEncoder
@@ -22,7 +26,8 @@ class Encoder: public IEncoder
 public:
     Encoder();
 
-    bool initialize(int width, int height, int fps = 30, int quality = 100);
+    bool initialize();
+    bool configure(int width, int height, int fps = 30, int quality = 100);
     void shutdown();
 
     bool encodeFrame(RenderTarget* rt);
@@ -31,8 +36,8 @@ public:
     void unlockBitstream();
 
 private:
-    NvIFRAPI myNVIFR;
     NV_IFROGL_SESSION_HANDLE mySession;
+    bool myTransferObjectInitialized;
     NV_IFROGL_TRANSFEROBJECT_HANDLE myTransferObject;
     
     ThreadEvent myDataReleasedEvent;
@@ -51,6 +56,7 @@ DLL_EXPORT IEncoder* createEncoder()
 ////////////////////////////////////////////////////////////////////////////////
 Encoder::Encoder()
 {
+    myTransferObjectInitialized = false;
     myMaxOutstandingTransfers = 4;
     myReceivedTransfers = 0;
     myTransferCounter = 0;
@@ -64,8 +70,45 @@ void ifrcb(NV_IFROGL_DEBUG_SEVERITY s, const char* message, void* usr)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-bool Encoder::initialize(int width, int height, int fps, int quality)
+bool Encoder::initialize()
 {
+    if(!sNVIFRInitialized)
+    {
+        olog(Debug, "myNVIFR.initialize");
+        if(!NVIFR.initialize())
+        {
+            owarn("Encoder::initialize: IVIFR API init failed.");
+            return false;
+        }
+        olog(Debug, "myNVIFR.nvIFROGLDebugMessageCallback");
+        //myNVIFR.nvIFROGLDebugMessageCallback(ifrcb, NULL);
+        
+        sNVIFRInitialized = true;
+    }
+    
+    olog(Debug, "myNVIFR.nvIFROGLCreateSession");
+    NVIFROGLSTATUS st = NVIFR.nvIFROGLCreateSession(&mySession, NULL);
+    if(st != NV_IFROGL_SUCCESS)
+    {
+        owarn("Encoder::initialize: IFR session init failed.");
+        return false;
+    }
+    
+    return true;
+}
+
+////////////////////////////////////////////////////////////////////////////////
+bool Encoder::configure(int width, int height, int fps, int quality)
+{
+    olog(Debug, "[Encoder::initialize]");
+    
+    if(myTransferObjectInitialized)
+    {
+        NVIFR.nvIFROGLDestroyTransferObject(myTransferObject);
+        myTransferCounter = 0;
+        myReceivedTransfers = 0;
+    }
+    
     NV_IFROGL_H264_ENC_CONFIG config;
     memset(&config, 0, sizeof(config));
 
@@ -84,28 +127,17 @@ bool Encoder::initialize(int width, int height, int fps, int quality)
     config.preset = NV_IFROGL_H264_PRESET_LOW_LATENCY_HP;
     config.VBVBufferSize = config.avgBitRate / 20;
     config.VBVInitialDelay = config.avgBitRate / 20;
-
-    if(!myNVIFR.initialize())
+    
+    olog(Debug, "myNVIFR.nvIFROGLCreateTransferToH264EncObject");
+    if(NVIFR.nvIFROGLCreateTransferToH264EncObject(mySession, &config, &myTransferObject) != NV_IFROGL_SUCCESS)
     {
-        owarn("Encoder::initialize: IVIFR API init failed.");
+        owarn("Encoder::initialize: H264 encoder init failed.");
         return false;
     }
 
-    NVIFROGLSTATUS st = myNVIFR.nvIFROGLCreateSession(&mySession, NULL);
-    if(st != NV_IFROGL_SUCCESS)
-    {
-        owarn("Encoder::initialize: IFR session init failed.");
-        return false;
-    }
-
-    if(myNVIFR.nvIFROGLCreateTransferToH264EncObject(mySession, &config, &myTransferObject) != NV_IFROGL_SUCCESS)
-    {
-        owarn("Encoder::initialize: IFR session init failed.");
-    }
-
-    myNVIFR.nvIFROGLDebugMessageCallback(ifrcb, NULL);
     olog(Verbose, "llenc Encoder initialized");
-
+    myTransferObjectInitialized = true;
+    
     return true;
 }
 
@@ -114,8 +146,8 @@ void Encoder::shutdown()
 {
     olog(Verbose, "llenc Encoder shutdown");
     
-    myNVIFR.nvIFROGLDestroyTransferObject(myTransferObject);
-    myNVIFR.nvIFROGLDestroySession(mySession);
+    NVIFR.nvIFROGLDestroyTransferObject(myTransferObject);
+    NVIFR.nvIFROGLDestroySession(mySession);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -128,7 +160,7 @@ bool Encoder::encodeFrame(RenderTarget* source)
         myDataReleasedEvent.wait();
     }
 
-    if(myNVIFR.nvIFROGLTransferFramebufferToH264Enc(
+    if(NVIFR.nvIFROGLTransferFramebufferToH264Enc(
         myTransferObject,
         NULL,
         //0,
@@ -162,7 +194,7 @@ bool Encoder::lockBitstream(const void** stptr, uint32_t* bytes)
 
     while(myTransferCounter == myReceivedTransfers) myTransferStartedEvent.wait();
     //ofmsg("lock %1%      %2%", %myReceivedTransfers %myTransferCounter);
-    if(myNVIFR.nvIFROGLLockTransferData(
+    if(NVIFR.nvIFROGLLockTransferData(
         myTransferObject, &datasize, stptr) != NV_IFROGL_SUCCESS) return false;
 
     *bytes = datasize;
@@ -173,7 +205,7 @@ bool Encoder::lockBitstream(const void** stptr, uint32_t* bytes)
 ////////////////////////////////////////////////////////////////////////////////
 void Encoder::unlockBitstream()
 {
-    myNVIFR.nvIFROGLReleaseTransferData(myTransferObject);
+    NVIFR.nvIFROGLReleaseTransferData(myTransferObject);
     myReceivedTransfers++;
     myDataReleasedEvent.signal();
 }

@@ -27,7 +27,7 @@ public:
 
         while(!SystemManager::instance()->isExitRequested())
         {
-            IEncoder* e = streamer->getEncoder();
+            IEncoder* e = streamer->lockEncoder();
             if(e != NULL && e->dataAvailable())
             {
                 const void* data;
@@ -38,6 +38,7 @@ public:
                     e->unlockBitstream();
                 }
             }
+            streamer->unlockEncoder();
         }
         fclose(output);
     }
